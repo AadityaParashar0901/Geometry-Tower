@@ -36,15 +36,15 @@ Const BULLET_TOWER = 1
 Const BULLET_ENEMY = 2
 
 Dim Shared Money As Long
-Money = 50000000 + CONST_TOWER_COST
+Money = 1000 + CONST_TOWER_COST
 
 'First Run
 NewTower 0, 0
 
 _Delay 0.5
 Screen _NewImage(W, H, 32)
-_Title "Geometry Tower"
 Color -1, 0
+_Title "Geometry Tower"
 _FullScreen _SquarePixels
 
 Dim Shared As _Unsigned Long Background, Enemy_One, Enemy_Two, Enemy_Four, Enemy_Five, Enemy_Six
@@ -55,7 +55,7 @@ Enemy_Four = _LoadImage("res\0004.png", 32)
 Enemy_Five = _LoadImage("res\0005.png", 32)
 Enemy_Six = _LoadImage("res\0006.png", 32)
 
-Dim As Vec2 oldMouse, ScreenCoords: Dim Shared As _Unsigned _Byte TowerSelected
+Dim As Vec2 oldMouse, ScreenCoords: Dim Shared As _Unsigned Integer TowerSelected
 
 Const MenuW = W - 128
 
@@ -69,6 +69,7 @@ Do
             FinalCamera.X = FinalCamera.X - _MouseX + oldMouse.X
             FinalCamera.Y = FinalCamera.Y - _MouseY + oldMouse.Y
         End If
+        ScrollOffset = Clamp(0, ScrollOffset + _MouseWheel, 255)
     Wend
     oldMouse.X = _MouseX
     oldMouse.Y = _MouseY
@@ -78,7 +79,7 @@ Do
         For I = LBound(Towers) To UBound(Towers)
             If Vec2Dis(Towers(I).Position, ScreenCoords) < Towers(I).TowerSize And (Towers(I).Alive Or Towers(I).Level) Then
                 TowerSelected = I + 1
-                FinalCamera.X = Towers(I).Position.X - 64
+                FinalCamera.X = Towers(I).Position.X + 64
                 FinalCamera.Y = Towers(I).Position.Y
                 Exit For
             End If
@@ -106,78 +107,109 @@ Do
     If TowerSelected Then 'Show Menu
         Line (MenuW, 0)-(_Width - 1, _Height - 1), _RGB32(0, 63), BF
         _PrintString (W - 8, 0), "X"
-        _PrintString (MenuW, 0), Chr$(17)
-        _PrintString (W - 24, 0), Chr$(16)
+        _PrintString (MenuW, 0), Chr$(17) 'Left
+        _PrintString (W - 24, 0), Chr$(16) 'Right
         If _MouseButton(1) Then
+            If InRange(W - 8, oldMouse.X, W) And InRange(0, oldMouse.Y, 16) Then TowerSelected = 0: FinalCamera.X = FinalCamera.X - 64
             If InRange(MenuW, oldMouse.X, MenuW + 8) And TowerSelected > 0 Then
-                Do: TowerSelected = TowerSelected - 1: Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                Do: TowerSelected = ClampCycle(1, TowerSelected - 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
+                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
                 While _MouseInput Or _MouseButton(1): Wend
             End If
+            If InRange(MenuW + 8, oldMouse.X, W - 24) Then Page = 1
             If InRange(W - 24, oldMouse.X, W - 16) And TowerSelected < 255 Then
-                Do: TowerSelected = TowerSelected + 1: Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                Do: TowerSelected = ClampCycle(1, TowerSelected + 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
+                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
                 While _MouseInput Or _MouseButton(1): Wend
             End If
         End If
         TS = TowerSelected - 1
         _PrintString (MenuW, 0), "   Tower" + Str$(TS)
-        _PrintString (MenuW, 16), "Level:" + Str$(Towers(TS).Level)
-        Line (MenuW, 31)-(W, 31), _RGB32(255)
-        Health! = Towers(TS).Health / Towers(TS).MaxHealth
-        Line (MenuW, 31)-(MenuW + 128 * Health!, 31), _RGB32(255 * (1 - Health!), 255 * Health!, 0)
-        _PrintString (MenuW, 32), "   Statistics"
-        _PrintString (MenuW, 48), "Health:" + _Trim$(Str$(Towers(TS).Health))
-        _PrintString (MenuW, 64), "Max Health:" + _Trim$(Str$(Towers(TS).MaxHealth))
-        _PrintString (MenuW, 80), "Turn Rate:" + _Trim$(Str$(Towers(TS).MaxTurnRate))
-        _PrintString (MenuW, 96), "Fire Speed:" + _Trim$(Str$(59 - Towers(TS).FireDelay))
-        _PrintString (MenuW, 112), "Fire Radius:" + _Trim$(Str$(Towers(TS).FireRadius))
-        _PrintString (MenuW, 128), "      Costs"
-        _PrintString (MenuW, 144), "Self Heal:" + _Trim$(Str$(Towers(TS).SelfHeal))
-        _PrintString (MenuW, 160), "Worth:" + _Trim$(Str$(Towers(TS).TotalCost))
-        If Towers(TS).Alive Then
-            If Towers(TS).Level < 100 Then RequiredMoney = 40 + 10 * Towers(TS).Level
-            HealMoney = Ceil((Towers(TS).MaxHealth - Towers(TS).Health) / 10)
-            Line (MenuW, 176)-(W, 224), _RGB32(0, 63), BF
-            _PrintString (MenuW, 176), "Heal:" + _Trim$(Str$(HealMoney))
-            _PrintString (MenuW, 192), "Sell:" + _Trim$(Str$(Towers(TS).TotalCost * 0.6))
-            If Towers(TS).Level < 100 Then _PrintString (MenuW, 208), "Upgrade:" + _Trim$(Str$(RequiredMoney))
-            If InRange(MenuW, oldMouse.X, W) And _MouseButton(1) Then
-                If InRange(W - 8, oldMouse.X, W) And InRange(0, oldMouse.Y, 16) Then TowerSelected = 0
-                If InRange(176, oldMouse.Y, 191) And Money >= HealMoney Then
-                    While _MouseButton(1) Or _MouseInput: Wend
-                    Towers(TS).Health = Towers(TS).MaxHealth
-                    Money = Money - HealMoney
-                ElseIf InRange(192, oldMouse.Y, 207) Then
-                    While _MouseButton(1) Or _MouseInput: Wend
-                    Towers(TS).Alive = 0
-                    Towers(TS).Level = 0
-                    Money = Money + Towers(TS).TotalCost * 0.6
-                ElseIf InRange(208, oldMouse.Y, 224) And Money >= RequiredMoney And Towers(TS).Level < 100 Then
-                    While _MouseButton(1) Or _MouseInput: Wend
-                    Towers(TS).MaxTurnRate = Towers(TS).MaxTurnRate - Sgn(Towers(TS).MaxTurnRate - 60)
-                    Towers(TS).MaxHealth = 100 + 10 * Towers(TS).Level
-                    Towers(TS).Health = Towers(TS).Health + 10
-                    Towers(TS).FireRadius = Towers(TS).FireRadius + 1
-                    Towers(TS).FireDelay = Towers(TS).FireDelay - Sgn(Towers(TS).FireDelay)
-                    Towers(TS).Level = Towers(TS).Level + 1
-                    Towers(TS).SelfHeal = Towers(TS).SelfHeal - ((Towers(TS).Level Mod 5) = 0)
-                    Towers(TS).TotalCost = Towers(TS).TotalCost + RequiredMoney
-                    Money = Money - RequiredMoney
+        Select Case Page
+            Case 0
+                _PrintString (MenuW, 16), "Level:" + Str$(Towers(TS).Level)
+                Line (MenuW, 31)-(W, 31), _RGB32(255)
+                Health! = Towers(TS).Health / Towers(TS).MaxHealth
+                Line (MenuW, 31)-(MenuW + 128 * Health!, 31), _RGB32(255 * (1 - Health!), 255 * Health!, 0)
+                _PrintString (MenuW, 32), "   Statistics"
+                _PrintString (MenuW, 48), "Health:" + _Trim$(Str$(Towers(TS).Health))
+                _PrintString (MenuW, 64), "Max Health:" + _Trim$(Str$(Towers(TS).MaxHealth))
+                _PrintString (MenuW, 80), "Turn Rate:" + _Trim$(Str$(Towers(TS).MaxTurnRate))
+                _PrintString (MenuW, 96), "Fire Speed:" + _Trim$(Str$(59 - Towers(TS).FireDelay))
+                _PrintString (MenuW, 112), "Fire Radius:" + _Trim$(Str$(Towers(TS).FireRadius))
+                _PrintString (MenuW, 128), "      Costs"
+                _PrintString (MenuW, 144), "Self Heal:" + _Trim$(Str$(Towers(TS).SelfHeal))
+                _PrintString (MenuW, 160), "Worth:" + _Trim$(Str$(Towers(TS).TotalCost))
+                If Towers(TS).Alive Then
+                    If Towers(TS).Level < 100 Then RequiredMoney = 40 + 10 * Towers(TS).Level
+                    HealMoney = Ceil((Towers(TS).MaxHealth - Towers(TS).Health) / 10)
+                    Line (MenuW, 176)-(W, 224), _RGB32(0, 63), BF
+                    _PrintString (MenuW, 176), "Heal:" + _Trim$(Str$(HealMoney))
+                    _PrintString (MenuW, 192), "Sell:" + _Trim$(Str$(Towers(TS).TotalCost * 0.6))
+                    If Towers(TS).Level < 100 Then _PrintString (MenuW, 208), "Upgrade:" + _Trim$(Str$(RequiredMoney))
+                    If InRange(MenuW, oldMouse.X, W) And _MouseButton(1) Then
+                        If InRange(176, oldMouse.Y, 191) And Money >= HealMoney Then
+                            While _MouseButton(1) Or _MouseInput: Wend
+                            Towers(TS).Health = Towers(TS).MaxHealth
+                            Money = Money - HealMoney
+                        ElseIf InRange(192, oldMouse.Y, 207) Then
+                            While _MouseButton(1) Or _MouseInput: Wend
+                            Towers(TS).Alive = 0
+                            Towers(TS).Level = 0
+                            Money = Money + Towers(TS).TotalCost * 0.6
+                        ElseIf InRange(208, oldMouse.Y, 224) And Money >= RequiredMoney And Towers(TS).Level < 100 Then
+                            While _MouseButton(1) Or _MouseInput: Wend
+                            Towers(TS).MaxTurnRate = Towers(TS).MaxTurnRate - Sgn(Towers(TS).MaxTurnRate - 60)
+                            Towers(TS).MaxHealth = 100 + 10 * Towers(TS).Level
+                            Towers(TS).Health = Towers(TS).Health + 10
+                            Towers(TS).FireRadius = Towers(TS).FireRadius + 1
+                            Towers(TS).FireDelay = Towers(TS).FireDelay - Sgn(Towers(TS).FireDelay)
+                            Towers(TS).Level = Towers(TS).Level + 1
+                            Towers(TS).SelfHeal = Towers(TS).SelfHeal - ((Towers(TS).Level Mod 5) = 0)
+                            Towers(TS).TotalCost = Towers(TS).TotalCost + RequiredMoney
+                            Money = Money - RequiredMoney
+                        End If
+                    End If
+                Else
+                    RequiredMoney = Max(CONST_TOWER_COST + 10 * Towers(TS).Level, Towers(TS).TotalCost * 0.9)
+                    _PrintString (MenuW, 192), _Trim$(Str$(RequiredMoney))
+                    Line (MenuW, 208)-(W, 224), _RGB32(0, 63), BF
+                    _PrintString (MenuW, 208), "     Repair"
+                    If InRange(208, oldMouse.Y, 224) And _MouseButton(1) Then
+                        While _MouseButton(1) Or _MouseInput: Wend
+                        Towers(TS).Health = Towers(TS).MaxHealth
+                        Towers(TS).Alive = -1
+                        Money = Money - RequiredMoney
+                    End If
                 End If
-            End If
-        Else
-            RequiredMoney = Max(CONST_TOWER_COST + 10 * Towers(TS).Level, Towers(TS).TotalCost * 0.9)
-            _PrintString (MenuW, 192), _Trim$(Str$(RequiredMoney))
-            Line (MenuW, 208)-(W, 224), _RGB32(0, 63), BF
-            _PrintString (MenuW, 208), "     Repair"
-            If InRange(208, oldMouse.Y, 224) And _MouseButton(1) Then
-                While _MouseButton(1) Or _MouseInput: Wend
-                Towers(TS).Health = Towers(TS).MaxHealth
-                Towers(TS).Alive = -1
-                Money = Money - RequiredMoney
-            End If
-        End If
+            Case 1
+                Dim As _Unsigned _Bit * 2 Page2X
+                Dim As _Unsigned _Byte Page2Y
+                Page2X = 0
+                Page2Y = 0
+                For I = ScrollOffset To 4 * 12 + ScrollOffset
+                    If InRange(0, I, 255) = 0 Then _Continue
+                    If Towers(I).Alive = 0 And Towers(I).Level = 0 Then _Continue
+                    If Towers(I).Alive Then
+                        Health! = Towers(TS).Health / Towers(TS).MaxHealth: Color -1, _RGB32(255 * (1 - Health!), 255 * Health!, 0)
+                    Else Color -1, _RGB32(127)
+                    End If
+                    _PrintString (MenuW + Page2X * 32, 32 + Page2Y * 16), _Trim$(Str$(I))
+                    If _MouseButton(1) And InRange(MenuW + Page2X * 32, oldMouse.X, MenuW + Page2X * 32 + 32) And InRange(Page2Y * 16 + 32, oldMouse.Y, Page2Y * 16 + 48) Then
+                        TowerSelected = I + 1
+                        FinalCamera.X = Towers(I).Position.X + 64
+                        FinalCamera.Y = Towers(I).Position.Y
+                        Page = 0
+                    End If
+                    Page2X = Page2X + 1
+                    Page2Y = Page2Y - (Page2X = 0)
+                Next I
+                Color -1, 0
+        End Select
+    Else Page = 0
     End If
-
     _PrintString (144, 0), "Geometry Tower"
     Print "Money:"; _Trim$(Str$(Money))
     _Display
@@ -296,9 +328,9 @@ End Sub
 Sub CreateEnemy
     Static As _Unsigned _Bit * 10 NewEnemyID
     Static As Single Hardness, EntityHealthHardness, EntitySpeedHardness
-    Hardness = Min(Hardness + 0.05, 4.95)
-    EntityHealthHardness = EntityHealthHardness + 0.01
-    EntitySpeedHardness = EntitySpeedHardness + 0.01
+    Hardness = Min(Hardness + 0.001, 4.99)
+    EntityHealthHardness = EntityHealthHardness + 0.001
+    EntitySpeedHardness = EntitySpeedHardness + 0.001
     If Enemies(NewEnemyID).Alive Then
         For I = LBound(Enemies) To UBound(Enemies)
             If Enemies(I).Alive Then NewEnemyID = I: Exit For
@@ -314,10 +346,10 @@ Sub CreateEnemy
         If D! < MinDis Then
             MinDis = D!
             MinDisTarget = I
-            mindisangle = _R2D(Vec2Angle(Enemies(NewEnemyID).Position, Towers(I).Position))
+            MinDisAngle = _R2D(Vec2Angle(Enemies(NewEnemyID).Position, Towers(I).Position))
         End If
     Next I
-    Enemies(NewEnemyID).Angle = mindisangle
+    Enemies(NewEnemyID).Angle = MinDisAngle
     Enemies(NewEnemyID).Speed = 0.2 - Enemies(NewEnemyID).Type / 6 + EntitySpeedHardness
     Enemies(NewEnemyID).Target = MinDisTarget
     Enemies(NewEnemyID).MaxHealth = Enemies(NewEnemyID).Type + EntityHealthHardness
