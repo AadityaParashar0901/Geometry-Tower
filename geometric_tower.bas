@@ -93,7 +93,7 @@ Do
     If LastEnemyCreateTime = 0 Then
         CreateEnemy
         LastEnemyCreateTime = Int(EnemyCreateTime)
-        EnemyCreateTime = EnemyCreateTime + 0.1 * Sgn(2 - EnemyCreateTime)
+        EnemyCreateTime = EnemyCreateTime + 0.1 * Sgn(6 - EnemyCreateTime)
     Else
         LastEnemyCreateTime = LastEnemyCreateTime - 1
     End If
