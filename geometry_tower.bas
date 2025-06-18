@@ -99,7 +99,7 @@ Do
     End If
     Select Case _KeyHit
         Case 27: Exit Do
-        Case 78, 110: If Money >= 25 Then NewTower ScreenCoords.X, ScreenCoords.Y
+        Case 78, 110: If Money >= CONST_TOWER_COST Then NewTower ScreenCoords.X, ScreenCoords.Y
     End Select
     SimulateTowers
     SimulateEnemies
