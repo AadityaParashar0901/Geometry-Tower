@@ -11,7 +11,7 @@ Type Tower
     As Vec2 Position
     As _Unsigned Long TargetEnemy, TotalCost
     As Single FireRadius, TowerSize, TargetAngle, MaxTurnRate
-    As Long Health, MaxHealth, SelfHeal
+    As Long Health, MaxHealth, SelfHeal, HealRadius
     As Single Angle
     'Energy - for shields
     As Single RadiusTheta
@@ -59,8 +59,6 @@ Dim As Vec2 oldMouse, ScreenCoords: Dim Shared As _Unsigned Integer TowerSelecte
 
 Const MenuW = W - 128
 
-EnemyCreateTime = 60
-
 Do
     Cls , _RGB32(183, 155, 111)
     _Limit 60
@@ -92,8 +90,7 @@ Do
     Next Y, X
     If LastEnemyCreateTime = 0 Then
         CreateEnemy
-        LastEnemyCreateTime = Int(EnemyCreateTime)
-        EnemyCreateTime = EnemyCreateTime + 0.01 * Sgn(15 - EnemyCreateTime)
+        LastEnemyCreateTime = Int(Rnd * 60)
     Else
         LastEnemyCreateTime = LastEnemyCreateTime - 1
     End If
@@ -149,9 +146,10 @@ Do
                             Towers(TS).MaxHealth = 100 + 10 * Towers(TS).Level
                             Towers(TS).Health = Towers(TS).Health + 10
                             Towers(TS).FireRadius = Towers(TS).FireRadius + 1
-                            Towers(TS).FireDelay = Towers(TS).FireDelay - Sgn(Towers(TS).FireDelay)
+                            Towers(TS).FireDelay = Towers(TS).FireDelay - Sgn(Towers(TS).FireDelay - 1)
                             Towers(TS).Level = Towers(TS).Level + 1
                             Towers(TS).SelfHeal = Towers(TS).SelfHeal - ((Towers(TS).Level Mod 5) = 0)
+                            Towers(TS).HealRadius = Towers(TS).HealRadius - (Towers(TS).Level >= 20 And ((Towers(TS).Level Mod 5) = 0)) * 10
                             Towers(TS).TotalCost = Towers(TS).TotalCost + RequiredMoney
                             Money = Money - RequiredMoney
                         End If
@@ -280,6 +278,13 @@ Sub SimulateTowers
         If Towers(I).LastHealTick = 0 Then
             Towers(I).LastHealTick = 60
             Towers(I).Health = Min(Towers(I).Health + Towers(I).SelfHeal, Towers(I).MaxHealth)
+            If Towers(I).HealRadius Then
+                For J = LBound(Towers) To UBound(Towers)
+                    If I <> J And Vec2Dis(Towers(I).Position, Towers(J).Position) <= Towers(I).HealRadius Then
+                        Towers(J).Health = Towers(J).Health + Sgn(Towers(J).MaxHealth - Towers(J).Health)
+                    End If
+                Next J
+            End If
         Else
             Towers(I).LastHealTick = Towers(I).LastHealTick - 1
         End If
@@ -320,8 +325,10 @@ Sub SimulateTowers
         If Health3! Then Line (TX - 10, TY - Towers(I).TowerSize - 7)-(TX - 10 + 20 * Health3!, TY - Towers(I).TowerSize - 7), _RGB32(255 * (1 - Health3!), 255 * Health3!, 0)
         If I + 1 = TowerSelected Then
             DotCircle TX, TY, Towers(I).FireRadius, TowerColour&
+            If Towers(I).HealRadius Then DotCircle TX, TY, Towers(I).HealRadius, _RGB32(255, 255, 0)
         Else
             Circle (TX, TY), Towers(I).FireRadius, _RGBA(255, 255, 255, 63) And TowerColour&
+            If Towers(I).HealRadius Then Circle (TX, TY), Towers(I).HealRadius, _RGB32(255, 255, 255, 63)
         End If
     Next I
 End Sub
@@ -329,7 +336,7 @@ Sub CreateEnemy
     Static As _Unsigned _Bit * 10 NewEnemyID
     Static As Single Hardness, EntityHealthHardness, EntitySpeedHardness
     Hardness = Min(Hardness + 0.01, 4.99)
-    EntityHealthHardness = EntityHealthHardness + 0.0001
+    EntityHealthHardness = EntityHealthHardness + 0.001
     EntitySpeedHardness = EntitySpeedHardness + 0.0001
     If Enemies(NewEnemyID).Alive Then
         For I = LBound(Enemies) To UBound(Enemies)
@@ -350,7 +357,7 @@ Sub CreateEnemy
         End If
     Next I
     Enemies(NewEnemyID).Angle = MinDisAngle
-    Enemies(NewEnemyID).Speed = 0.2 - Enemies(NewEnemyID).Type / 6 + EntitySpeedHardness
+    Enemies(NewEnemyID).Speed = 0.2 + EntitySpeedHardness
     Enemies(NewEnemyID).Target = MinDisTarget
     Enemies(NewEnemyID).MaxHealth = Enemies(NewEnemyID).Type + EntityHealthHardness
     Enemies(NewEnemyID).Health = Enemies(NewEnemyID).MaxHealth
@@ -447,7 +454,7 @@ Sub SimulateBullets (F As _Byte, X As Integer, Y As Integer, T As Single)
                         If Enemies(J).Alive And Vec2Dis(Bullets(I).Position, Enemies(J).Position) < 5 Then
                             Enemies(J).Health = Enemies(J).Health - 1
                             Enemies(J).Alive = Enemies(J).Health <> 0
-                            Money = Money - (Enemies(J).Health = 0) * Enemies(J).Type * Enemies(J).MaxHealth
+                            Money = Money - (Enemies(J).Health = 0) * Enemies(J).Type * Min(10, Enemies(J).MaxHealth)
                             Bullets(I).Alive = 0
                             Exit For
                         End If
