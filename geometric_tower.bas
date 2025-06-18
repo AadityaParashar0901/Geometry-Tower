@@ -49,8 +49,8 @@ _FullScreen _SquarePixels
 
 Dim Shared As _Unsigned Long Background, Enemy_One, Enemy_Two, Enemy_Four, Enemy_Five, Enemy_Six
 Background = _LoadImage("res\0001.png", 32)
-Enemy_One = _LoadImage("res\0003.png", 32)
-Enemy_Two = _LoadImage("res\0002.png", 32)
+Enemy_One = _LoadImage("res\0002.png", 32)
+Enemy_Two = _LoadImage("res\0003.png", 32)
 Enemy_Four = _LoadImage("res\0004.png", 32)
 Enemy_Five = _LoadImage("res\0005.png", 32)
 Enemy_Six = _LoadImage("res\0006.png", 32)
@@ -93,7 +93,7 @@ Do
     If LastEnemyCreateTime = 0 Then
         CreateEnemy
         LastEnemyCreateTime = Int(EnemyCreateTime)
-        EnemyCreateTime = EnemyCreateTime + 0.1 * Sgn(6 - EnemyCreateTime)
+        EnemyCreateTime = EnemyCreateTime + 0.01 * Sgn(15 - EnemyCreateTime)
     Else
         LastEnemyCreateTime = LastEnemyCreateTime - 1
     End If
@@ -109,22 +109,6 @@ Do
         _PrintString (W - 8, 0), "X"
         _PrintString (MenuW, 0), Chr$(17) 'Left
         _PrintString (W - 24, 0), Chr$(16) 'Right
-        If _MouseButton(1) Then
-            If InRange(W - 8, oldMouse.X, W) And InRange(0, oldMouse.Y, 16) Then TowerSelected = 0: FinalCamera.X = FinalCamera.X - 64
-            If InRange(MenuW, oldMouse.X, MenuW + 8) And TowerSelected > 0 Then
-                Do: TowerSelected = ClampCycle(1, TowerSelected - 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
-                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
-                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
-                While _MouseInput Or _MouseButton(1): Wend
-            End If
-            If InRange(MenuW + 8, oldMouse.X, W - 24) Then Page = 1
-            If InRange(W - 24, oldMouse.X, W - 16) And TowerSelected < 255 Then
-                Do: TowerSelected = ClampCycle(1, TowerSelected + 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
-                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
-                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
-                While _MouseInput Or _MouseButton(1): Wend
-            End If
-        End If
         TS = TowerSelected - 1
         _PrintString (MenuW, 0), "   Tower" + Str$(TS)
         Select Case Page
@@ -143,7 +127,7 @@ Do
                 _PrintString (MenuW, 144), "Self Heal:" + _Trim$(Str$(Towers(TS).SelfHeal))
                 _PrintString (MenuW, 160), "Worth:" + _Trim$(Str$(Towers(TS).TotalCost))
                 If Towers(TS).Alive Then
-                    If Towers(TS).Level < 100 Then RequiredMoney = 40 + 10 * Towers(TS).Level
+                    If Towers(TS).Level < 100 Then RequiredMoney = 5 + 5 * Towers(TS).Level
                     HealMoney = Ceil((Towers(TS).MaxHealth - Towers(TS).Health) / 10)
                     Line (MenuW, 176)-(W, 224), _RGB32(0, 63), BF
                     _PrintString (MenuW, 176), "Heal:" + _Trim$(Str$(HealMoney))
@@ -208,6 +192,22 @@ Do
                 Next I
                 Color -1, 0
         End Select
+        If _MouseButton(1) And InRange(0, oldMouse.Y, 16) Then
+            If InRange(W - 8, oldMouse.X, W) Then TowerSelected = 0: FinalCamera.X = FinalCamera.X - 64
+            If InRange(MenuW, oldMouse.X, MenuW + 7) And TowerSelected > 0 Then
+                Do: TowerSelected = ClampCycle(1, TowerSelected - 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
+                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
+                While _MouseInput Or _MouseButton(1): Wend
+            End If
+            If InRange(MenuW + 8, oldMouse.X, W - 23) Then Page = 1
+            If InRange(W - 24, oldMouse.X, W - 16) And TowerSelected < 255 Then
+                Do: TowerSelected = ClampCycle(1, TowerSelected + 1, 256): Loop Until Towers(TowerSelected - 1).Alive Or Towers(TowerSelected - 1).Level
+                FinalCamera.X = Towers(TowerSelected - 1).Position.X + 64
+                FinalCamera.Y = Towers(TowerSelected - 1).Position.Y
+                While _MouseInput Or _MouseButton(1): Wend
+            End If
+        End If
     Else Page = 0
     End If
     _PrintString (144, 0), "Geometry Tower"
@@ -228,7 +228,7 @@ Sub NewTower (X As Integer, Y As Integer)
     Towers(NewTowerID).MaxTurnRate = 6
     Towers(NewTowerID).MaxHealth = 100
     Towers(NewTowerID).Health = Towers(NewTowerID).MaxHealth
-    Towers(NewTowerID).FireRadius = 21
+    Towers(NewTowerID).FireRadius = 50
     Towers(NewTowerID).FireDelay = 59
     Towers(NewTowerID).LastFireTick = 0
     Towers(NewTowerID).Alive = -1
@@ -328,9 +328,9 @@ End Sub
 Sub CreateEnemy
     Static As _Unsigned _Bit * 10 NewEnemyID
     Static As Single Hardness, EntityHealthHardness, EntitySpeedHardness
-    Hardness = Min(Hardness + 0.001, 4.99)
-    EntityHealthHardness = EntityHealthHardness + 0.001
-    EntitySpeedHardness = EntitySpeedHardness + 0.001
+    Hardness = Min(Hardness + 0.01, 4.99)
+    EntityHealthHardness = EntityHealthHardness + 0.0001
+    EntitySpeedHardness = EntitySpeedHardness + 0.0001
     If Enemies(NewEnemyID).Alive Then
         For I = LBound(Enemies) To UBound(Enemies)
             If Enemies(I).Alive Then NewEnemyID = I: Exit For
