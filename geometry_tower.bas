@@ -137,8 +137,8 @@ Do
                 _PrintString (MenuW, 80), "Turn Rate:" + _Trim$(Str$(Towers(TS).MaxTurnRate))
                 _PrintString (MenuW, 96), "Fire Speed:" + _Trim$(Str$(59 - Towers(TS).FireDelay))
                 _PrintString (MenuW, 112), "Fire Radius:" + _Trim$(Str$(Towers(TS).FireRadius))
-                _PrintString (MenuW, 128), "     Costs"
-                _PrintString (MenuW, 144), "Heal:" + _Trim$(Str$(Towers(TS).SelfHeal)) + ", " + _Trim$(Str$(Towers(TS).HealRadius / 10))
+                _PrintString (MenuW, 128), "Heal:" + _Trim$(Str$(Towers(TS).SelfHeal)) + ", " + _Trim$(Str$(Towers(TS).HealRadius))
+                _PrintString (MenuW, 144), "     Costs"
                 _PrintString (MenuW, 160), "Worth:" + _Trim$(Str$(Towers(TS).TotalCost))
                 If Towers(TS).Alive Then
                     If Towers(TS).Level < 100 Then RequiredMoney = 5 + 5 * Towers(TS).Level
