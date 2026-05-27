@@ -66,7 +66,7 @@ Do
     Cls , _RGB32(183, 155, 111)
     _Limit FPS
     While _MouseInput
-        If _MouseButton(1) And InRange(0, _MouseX, IIF(TowerSelected, MenuW, W)) Then
+        If _MouseButton(1) And InRange(0, _MouseX, _IIf(TowerSelected, MenuW, W)) Then
             FinalCamera.X = FinalCamera.X - _MouseX + oldMouse.X
             FinalCamera.Y = FinalCamera.Y - _MouseY + oldMouse.Y
         End If
@@ -81,7 +81,7 @@ Do
             FPS = 300 - FPS
             While _MouseInput Or _MouseButton(1): Wend
         End If
-        If InRange(0, oldMouse.X, IIF(TowerSelected, MenuW, W)) Then
+        If InRange(0, oldMouse.X, _IIf(TowerSelected, MenuW, W)) Then
             For I = LBound(Towers) To UBound(Towers)
                 If Vec2Dis(Towers(I).Position, ScreenCoords) < Towers(I).TowerSize And (Towers(I).Alive Or Towers(I).Level) Then
                     TowerSelected = I + 1
@@ -173,7 +173,7 @@ Do
                         End If
                     End If
                 Else
-                    RequiredMoney = Max(CONST_TOWER_COST + 10 * Towers(TS).Level, Towers(TS).TotalCost * 0.9)
+                    RequiredMoney = _Max(CONST_TOWER_COST + 10 * Towers(TS).Level, Towers(TS).TotalCost * 0.9)
                     _PrintString (MenuW, 192), _Trim$(Str$(RequiredMoney))
                     Line (MenuW, 208)-(W, 224), _RGB32(0, 63), BF
                     _PrintString (MenuW, 208), "     Repair"
@@ -229,7 +229,7 @@ Do
         End If
     Else Page = 0
     End If
-    _PrintString (144, 0), "Geometry Tower " + Chr$(IIF(FPS = 60, 175, 16))
+    _PrintString (144, 0), "Geometry Tower " + Chr$(_IIf(FPS = 60, 175, 16))
     Print "Score:"; _Trim$(Str$(Score))
     Print "Money:"; _Trim$(Str$(Money))
     _Display
@@ -299,7 +299,7 @@ Sub SimulateTowers
         End If
         If Towers(I).LastHealTick = 0 Then
             Towers(I).LastHealTick = 60
-            Towers(I).Health = Min(Towers(I).Health + Towers(I).SelfHeal, Towers(I).MaxHealth)
+            Towers(I).Health = _Min(Towers(I).Health + Towers(I).SelfHeal, Towers(I).MaxHealth)
             If Towers(I).HealRadius Then
                 For J = LBound(Towers) To UBound(Towers)
                     If I <> J And Vec2Dis(Towers(I).Position, Towers(J).Position) <= Towers(I).HealRadius Then
@@ -357,7 +357,7 @@ End Sub
 Sub CreateEnemy
     Static As _Unsigned _Bit * 10 NewEnemyID
     Static As Single Hardness, EntityHealthHardness, EntitySpeedHardness
-    Hardness = Min(Hardness + 0.01, 4.99)
+    Hardness = _Min(Hardness + 0.01, 4.99)
     EntityHealthHardness = EntityHealthHardness + 0.001
     EntitySpeedHardness = EntitySpeedHardness + 0.0001
     If Enemies(NewEnemyID).Alive Then
@@ -476,8 +476,8 @@ Sub SimulateBullets (F As _Byte, X As Integer, Y As Integer, T As Single)
                         If Enemies(J).Alive And Vec2Dis(Bullets(I).Position, Enemies(J).Position) < 5 Then
                             Enemies(J).Health = Enemies(J).Health - 1
                             Enemies(J).Alive = Enemies(J).Health <> 0
-                            Money = Money - (Enemies(J).Health = 0) * Enemies(J).Type * Min(10, Enemies(J).MaxHealth)
-                            Score = Score - (Enemies(J).Health = 0) * Min(10, Enemies(J).MaxHealth)
+                            Money = Money - (Enemies(J).Health = 0) * Enemies(J).Type * _Min(10, Enemies(J).MaxHealth)
+                            Score = Score - (Enemies(J).Health = 0) * _Min(10, Enemies(J).MaxHealth)
                             Bullets(I).Alive = 0
                             Exit For
                         End If
@@ -513,10 +513,7 @@ Function Ceil& (X#)
     Ceil& = Int(X#) + Sgn(X# - Int(X#))
 End Function
 '$Include:'include\vector\vector.bm'
-'$Include:'include\min.bm'
-'$Include:'include\max.bm'
 '$Include:'include\clamp.bm'
-'$Include:'include\inrange.bm'
+'$Include:'include\InRange.bm'
 '$Include:'include\transitangle.bm'
 '$Include:'include\modfloor.bm'
-'$Include:'include\iif.bm'
